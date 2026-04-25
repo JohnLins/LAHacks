@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { apiFetch } from './api';
 import './App.css';
 
 function Dashboard() {
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [identityMessage, setIdentityMessage] = useState('');
+  const [identityError, setIdentityError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    apiFetch('/api/auth/me')
       .then(res => {
         if (res.status === 401) {
           navigate('/login');
@@ -19,31 +22,149 @@ function Dashboard() {
       .then(currentUser => {
         if (!currentUser) return;
         setUser(currentUser);
-        return fetch('/api/tasks/')
+        return apiFetch('/api/tasks/')
           .then(res => res.json())
-          .then(allTasks => setTasks(allTasks.filter(t => t.assigned_user === currentUser.username)));
+          .then(allTasks => setTasks(allTasks.filter(task => task.assigned_user === currentUser.username)));
       });
   }, [navigate]);
 
-  if (!user) return <div className="app-container center">Loading...</div>;
+  const earned = Number(user?.fake_balance || 0);
+  const activeTasks = useMemo(() => tasks.filter(task => task.status === 'accepted'), [tasks]);
+  const completedTasks = useMemo(() => tasks.filter(task => task.status === 'completed'), [tasks]);
+
+  const handleLogout = () => {
+    apiFetch('/api/auth/logout', {
+      method: 'POST',
+    }).finally(() => {
+      setUser(null);
+      setTasks([]);
+      navigate('/login');
+    });
+  };
+
+  const handleDeregisterWorldID = () => {
+    const confirmed = window.confirm('Deregister World ID from this account? You will need to verify again before accepting work.');
+    if (!confirmed) return;
+
+    setIdentityMessage('');
+    setIdentityError('');
+    apiFetch('/api/world/registration', {
+      method: 'DELETE',
+    })
+      .then(res => res.json().then(data => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setIdentityError(data.error || 'Could not deregister World ID');
+          return;
+        }
+        setUser(current => current ? { ...current, world_id_verified: false } : current);
+        setIdentityMessage(data.message || 'World ID deregistered');
+      })
+      .catch(() => setIdentityError('Could not deregister World ID'));
+  };
+
+  if (!user) {
+    return <main className="shell"><p className="empty-state">Loading dashboard...</p></main>;
+  }
 
   return (
-    <div className="app-container center">
-      <h1>Dashboard</h1>
-      <div className="card">
-        <p><b>Username:</b> {user.username}</p>
-        <p><b>World ID Verified:</b> <span style={{color: user.world_id_verified ? '#00ffe7' : '#ff61a6'}}>{user.world_id_verified ? 'Yes' : 'No'}</span></p>
-        <p><b>Fake Balance:</b> <span style={{color: '#ffe066'}}>${user.fake_balance}</span></p>
-      </div>
-      {!user.world_id_verified && <Link to="/verify"><button>Verify with World ID</button></Link>}
-      <h2>Your Tasks</h2>
-      <ul>
-        {tasks.map(task => (
-          <li key={task.id} className="card">{task.description} <span style={{color: '#00ffe7'}}>- {task.status}</span></li>
-        ))}
-      </ul>
-      <Link to="/"><button>Back to Tasks</button></Link>
-    </div>
+    <main className="shell">
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Worker console</p>
+          <h1>{user.username}</h1>
+        </div>
+        <nav className="nav-actions" aria-label="Dashboard">
+          {user.is_admin && <Link className="ghost-link" to="/admin">Admin</Link>}
+          <Link className="ghost-link" to="/tasks">Task queue</Link>
+          <Link className="ghost-link" to="/verify">World ID</Link>
+          <button className="secondary-button" type="button" onClick={handleLogout}>Logout</button>
+        </nav>
+      </header>
+
+      <section className="panel identity-panel">
+        <div>
+          <p className="eyebrow">Signed in as</p>
+          <h2>{user.username}</h2>
+          <div className="profile-tags">
+            {(user.account_modes || []).map(mode => (
+              <span key={mode}>{mode === 'worker' ? 'Looking for work' : 'Looking for workers'}</span>
+            ))}
+            {(user.task_topics || []).map(topic => (
+              <span key={topic}>{topic}</span>
+            ))}
+          </div>
+          {identityMessage && <p className="notice success">{identityMessage}</p>}
+          {identityError && <p className="notice error">{identityError}</p>}
+        </div>
+        <div className="identity-actions">
+          <span className={`status-pill ${user.world_id_verified ? 'completed' : 'open'}`}>
+            {user.world_id_verified ? 'World ID verified' : 'World ID pending'}
+          </span>
+          {user.world_id_verified && (
+            <button className="secondary-button danger-button" type="button" onClick={handleDeregisterWorldID}>
+              Deregister World ID
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="metrics-grid">
+        <div className="metric">
+          <span>Verified</span>
+          <strong>{user.world_id_verified ? 'Yes' : 'No'}</strong>
+        </div>
+        <div className="metric">
+          <span>Mode</span>
+          <strong>{(user.account_modes || []).includes('worker') && (user.account_modes || []).includes('contractor') ? 'Both' : (user.account_modes || [])[0] || 'New'}</strong>
+        </div>
+        <div className="metric">
+          <span>Balance</span>
+          <strong>${earned.toFixed(2)}</strong>
+        </div>
+        <div className="metric">
+          <span>Active</span>
+          <strong>{activeTasks.length}</strong>
+        </div>
+      </section>
+
+      {!user.world_id_verified && (
+        <section className="panel callout-panel">
+          <div>
+            <p className="eyebrow">Identity gate</p>
+            <h2>Verify once to accept work</h2>
+            <p>Open tasks require World ID verification before assignment.</p>
+          </div>
+          <Link className="primary-button link-button" to="/verify">Verify with World ID</Link>
+        </section>
+      )}
+
+      <section className="panel">
+        <div className="panel-header split">
+          <div>
+            <p className="eyebrow">Assigned work</p>
+            <h2>Your tasks</h2>
+          </div>
+          <Link className="secondary-button link-button" to="/tasks">Find work</Link>
+        </div>
+
+        {tasks.length === 0 ? (
+          <p className="empty-state">No assigned tasks yet.</p>
+        ) : (
+          <div className="task-stack">
+            {tasks.map(task => (
+              <Link className="task-row" to={`/task/${task.id}`} key={task.id}>
+                <div>
+                  <span className={`status-pill ${task.status}`}>{task.status}</span>
+                  <h3>{task.description}</h3>
+                </div>
+                <strong>${Number(task.compensation || 0).toFixed(2)}</strong>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 

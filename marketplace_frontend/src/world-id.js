@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { IDKitRequestWidget, orbLegacy } from '@worldcoin/idkit';
+import { apiFetch } from './api';
 
-export function WorldIDButton({ onVerify, onError }) {
+export function WorldIDButton({ onVerify, onError, disabled = false }) {
   const [config, setConfig] = useState(null);
   const [rpContext, setRpContext] = useState(null);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [hostError, setHostError] = useState('');
 
   useEffect(() => {
-    fetch('/api/world/config', { credentials: 'include' })
+    apiFetch('/api/world/config')
       .then(res => res.json())
       .then(data => setConfig(data))
       .catch(() => onError('Could not load World ID configuration'))
@@ -23,12 +25,12 @@ export function WorldIDButton({ onVerify, onError }) {
     }
 
     setRequesting(true);
+    setHostError('');
     onError('');
     try {
-      const response = await fetch('/api/world/rp-signature', {
+      const response = await apiFetch('/api/world/rp-signature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ action: config.action }),
       });
       const data = await response.json();
@@ -50,27 +52,46 @@ export function WorldIDButton({ onVerify, onError }) {
     }
   };
 
+  const formatVerificationError = data => {
+    if (!data) return 'World ID verification failed';
+    if (typeof data.detail === 'string' && data.detail.trim()) {
+      try {
+        const parsed = JSON.parse(data.detail);
+        return parsed.detail || parsed.message || parsed.error || data.error || 'World ID verification failed';
+      } catch {
+        return data.detail;
+      }
+    }
+    if (data.detail && typeof data.detail === 'object') {
+      return data.detail.detail || data.detail.message || data.detail.error || data.error || 'World ID verification failed';
+    }
+    return data.error || 'World ID verification failed';
+  };
+
   const handleVerify = async (idkitResponse) => {
-    const response = await fetch('/api/world/verify', {
+    const response = await apiFetch('/api/world/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({ idkitResponse }),
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || 'World ID verification failed');
+      const message = formatVerificationError(data);
+      setHostError(message);
+      onError(message);
+      throw new Error(message);
     }
+    setHostError('');
     onVerify(data);
   };
 
   if (loading) {
-    return <button disabled>Loading World ID...</button>;
+    return <button className="primary-button" disabled>Loading World ID...</button>;
   }
 
   return (
     <>
-      <button onClick={startVerification} disabled={requesting}>
+      <button className="primary-button" onClick={startVerification} disabled={disabled || requesting}>
         {requesting ? 'Preparing...' : 'Verify with World ID'}
       </button>
       {config && rpContext && (
@@ -85,7 +106,13 @@ export function WorldIDButton({ onVerify, onError }) {
           environment={config.environment}
           handleVerify={handleVerify}
           onSuccess={() => setOpen(false)}
-          onError={(errorCode) => onError(`IDKit error: ${errorCode}`)}
+          onError={(errorCode) => {
+            if (errorCode === 'failed_by_host_app' && hostError) {
+              onError(hostError);
+              return;
+            }
+            onError(`IDKit error: ${errorCode}`);
+          }}
         />
       )}
     </>

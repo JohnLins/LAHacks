@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { apiFetch } from './api';
 import './App.css';
 
 function Register() {
@@ -8,31 +9,41 @@ function Register() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    fetch('/api/auth/register', {
+  const handleSubmit = event => {
+    event.preventDefault();
+    setError('');
+    apiFetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
     })
       .then(res => res.json())
       .then(data => {
         if (data.error) setError(data.error);
-        else navigate('/login');
+        else navigate('/onboarding');
       });
   };
 
   return (
-    <div className="app-container center">
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" />
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
-        <button type="submit">Register</button>
-      </form>
-      {error && <p style={{color: '#ff61a6'}}>{error}</p>}
-      <Link to="/login"><button>Login</button></Link>
-    </div>
+    <main className="shell narrow-shell">
+      <section className="panel auth-panel">
+        <p className="eyebrow">New account</p>
+        <h1>Register</h1>
+        <form onSubmit={handleSubmit}>
+          <label>
+            Username
+            <input value={username} onChange={event => setUsername(event.target.value)} />
+          </label>
+          <label>
+            Password
+            <input type="password" value={password} onChange={event => setPassword(event.target.value)} />
+          </label>
+          <button className="primary-button" type="submit">Create account</button>
+        </form>
+        {error && <p className="notice error">{error}</p>}
+        <p className="helper-text">Already registered? <Link to="/login">Login</Link></p>
+      </section>
+    </main>
   );
 }
 

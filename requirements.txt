@@ -1,3 +1,5 @@
 uagents
 uagents-core
 requests
+openai
+python-dotenv

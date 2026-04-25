@@ -136,7 +136,11 @@ def verify():
     world_request = urllib.request.Request(
         verify_url,
         data=encoded_body,
-        headers={'Content-Type': 'application/json'},
+        headers={
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'LAHacks-HumanMarketplace/1.0',
+        },
         method='POST',
     )
 
@@ -145,11 +149,18 @@ def verify():
             verification = json.loads(response.read().decode('utf-8'))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode('utf-8')
-        return jsonify({'error': 'World ID verification failed', 'detail': detail}), 400
+        print(f'World ID verification failed ({exc.code}): {detail}', flush=True)
+        return jsonify({
+            'error': 'World ID verification failed',
+            'detail': detail,
+            'upstream_status': exc.code,
+        }), 400
     except urllib.error.URLError as exc:
+        print(f'Could not reach World ID verification API: {exc}', flush=True)
         return jsonify({'error': 'Could not reach World ID verification API', 'detail': str(exc)}), 502
 
     if not verification.get('success'):
+        print(f'World ID verification failed: {verification}', flush=True)
         return jsonify({'error': 'World ID verification failed', 'detail': verification}), 400
 
     nullifier = verification.get('nullifier')
@@ -166,7 +177,9 @@ def verify():
         action=WORLD_ID_ACTION,
     ).first()
     if existing and existing.user_id != user.id:
-        return jsonify({'error': 'This World ID proof was already used'}), 409
+        return jsonify({
+            'error': 'This World ID is already linked to another account for this action. Log in with that account or use a different World ID action for a new verification scope.',
+        }), 409
     if not existing:
         db.session.add(WorldIDNullifier(
             nullifier=nullifier,
@@ -177,3 +190,23 @@ def verify():
     user.world_id_verified = True
     db.session.commit()
     return jsonify({'message': 'World ID verified', 'verification': verification})
+
+
+@world_bp.route('/registration', methods=['DELETE'])
+def deregister():
+    user = _current_user()
+    if not user:
+        return jsonify({'error': 'Not logged in'}), 401
+
+    deleted = WorldIDNullifier.query.filter_by(
+        user_id=user.id,
+        action=WORLD_ID_ACTION,
+    ).delete()
+    user.world_id_verified = False
+    db.session.commit()
+
+    return jsonify({
+        'message': 'World ID deregistered',
+        'removed_bindings': deleted,
+        'world_id_verified': user.world_id_verified,
+    })

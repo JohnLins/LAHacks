@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { apiFetch } from './api';
 import './App.css';
 
 function Login() {
@@ -8,32 +9,42 @@ function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    fetch('/api/auth/login', {
+  const handleSubmit = event => {
+    event.preventDefault();
+    setError('');
+    apiFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password }),
     })
       .then(res => res.json())
       .then(data => {
         if (data.error) setError(data.error);
-        else navigate('/dashboard');
+        else if (data.user?.is_admin) navigate('/admin');
+        else navigate(data.user && !data.user.onboarding_completed ? '/onboarding' : '/tasks');
       });
   };
 
   return (
-    <div className="app-container center">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" />
-        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
-        <button type="submit">Login</button>
-      </form>
-      {error && <p style={{color: '#ff61a6'}}>{error}</p>}
-      <Link to="/register"><button>Register</button></Link>
-    </div>
+    <main className="shell narrow-shell">
+      <section className="panel auth-panel">
+        <p className="eyebrow">Worker access</p>
+        <h1>Login</h1>
+        <form onSubmit={handleSubmit}>
+          <label>
+            Username
+            <input value={username} onChange={event => setUsername(event.target.value)} />
+          </label>
+          <label>
+            Password
+            <input type="password" value={password} onChange={event => setPassword(event.target.value)} />
+          </label>
+          <button className="primary-button" type="submit">Login</button>
+        </form>
+        {error && <p className="notice error">{error}</p>}
+        <p className="helper-text">No account yet? <Link to="/register">Create one</Link></p>
+      </section>
+    </main>
   );
 }
 

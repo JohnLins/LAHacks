@@ -49,11 +49,23 @@
 
 ## World ID Verification
 
+### Get World ID Client Config
+- **GET** `/api/world/config`
+- **Response:** `{ "configured": bool, "app_id": "string", "rp_id": "string", "action": "string", "environment": "staging|production" }`
+
+### Generate RP Signature
+- **POST** `/api/world/rp-signature`
+- **Auth required** (session cookie)
+- **Body:** `{ "action": "verify-account" }`
+- **Response:** `{ "app_id": "string", "rp_id": "string", "action": "string", "environment": "string", "sig": "0x...", "nonce": "0x...", "created_at": int, "expires_at": int }`
+- **Notes:** Requires `WORLD_ID_APP_ID`, `WORLD_ID_RP_ID`, and `WORLD_ID_SIGNING_KEY` in the backend environment.
+
 ### Verify User
 - **POST** `/api/world/verify`
 - **Auth required** (session cookie)
-- **Response:** `{ "message": "World ID verified" }`
-- **Notes:** For demo, this just sets the user as verified.
+- **Body:** `{ "idkitResponse": { ... } }`
+- **Response:** `{ "message": "World ID verified", "verification": { ... } }`
+- **Notes:** Forwards the IDKit payload to World Developer Portal verification, then stores the proof nullifier so the same World ID cannot verify multiple accounts for the configured action.
 
 ---
 

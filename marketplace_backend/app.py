@@ -1,5 +1,15 @@
+from pathlib import Path
 
 from flask import Flask
+
+try:
+    from dotenv import load_dotenv
+    backend_dir = Path(__file__).resolve().parent
+    load_dotenv(backend_dir.parent / '.env')
+    load_dotenv(backend_dir / '.env', override=True)
+except ImportError:
+    pass
+
 from db import db, init_db
 from routes.auth import auth_bp
 from routes.tasks import tasks_bp

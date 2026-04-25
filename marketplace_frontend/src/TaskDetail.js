@@ -46,6 +46,7 @@ function TaskDetail() {
         <p>Compensation: <span style={{color: '#ffe066'}}>${task.compensation}</span></p>
       </div>
       {error && <p style={{color: '#ff61a6'}}>{error}</p>}
+      {error === 'World ID verification required' && <button onClick={() => navigate('/verify')}>Verify with World ID</button>}
       {task.status === 'open' && <button onClick={acceptTask}>Accept Task</button>}
       {task.status === 'accepted' && <button onClick={completeTask}>Complete Task</button>}
       <button onClick={() => navigate(-1)}>Back</button>

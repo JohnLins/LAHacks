@@ -5,6 +5,7 @@ import TaskDetail from './TaskDetail';
 import Dashboard from './Dashboard';
 import Login from './Login';
 import Register from './Register';
+import WorldVerify from './WorldVerify';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify" element={<WorldVerify />} />
       </Routes>
     </Router>
   );

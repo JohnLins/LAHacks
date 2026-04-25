@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from db import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -21,3 +23,15 @@ class Task(db.Model):
     compensation = db.Column(db.Float, default=0.0)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     assigned_user = db.relationship('User', backref='tasks')
+
+class WorldIDNullifier(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nullifier = db.Column(db.String(80), nullable=False)
+    action = db.Column(db.String(120), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    user = db.relationship('User', backref='world_id_nullifiers')
+
+    __table_args__ = (
+        db.UniqueConstraint('nullifier', 'action', name='uq_world_id_nullifier_action'),
+    )

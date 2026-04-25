@@ -1,9 +1,14 @@
+# Secrets and local configuration
 .env
+*.env
+!.env.example
+!*.env.example
 
 # Python
 __pycache__/
 *.py[cod]
 *.pyd
+*$py.class
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -11,24 +16,30 @@ __pycache__/
 coverage.xml
 .venv/
 venv/
+env/
 
-# Node / frontend
-node_modules/
-**/node_modules/
-*.log
-.next/
-dist/
-build/
-.parcel-cache/
-.cache/
-
-# Local databases / runtime data
+# Flask / SQLite local state
+instance/
+marketplace_backend/instance/
+*.db
 *.sqlite
 *.sqlite3
-*.db
-marketplace_backend/instance/
 
-# OS/editor
+# Node / React
+node_modules/
+**/node_modules/
+build/
+dist/
+.next/
+.parcel-cache/
+.cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor
 .DS_Store
-.idea/
+Thumbs.db
 .vscode/
+.idea/

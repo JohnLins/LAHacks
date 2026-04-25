@@ -174,7 +174,7 @@ def extract_human_tasks_from_prompt(prompt: str) -> list[dict[str, Any]]:
     Extract human-work tasks from a prompt and assign USD compensation.
 
     If Coralflavor/OpenAI-compatible credentials are configured, this uses the
-    LLM extractor from the latest remote version. Otherwise it falls back to the
+    LLM extractor from the remote version. Otherwise it falls back to the
     deterministic line parser so local Agentverse demos still work.
     """
     _maybe_load_dotenv()

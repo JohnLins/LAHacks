@@ -17,7 +17,6 @@ def register():
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
-    session['user_id'] = user.id
     return jsonify({'message': 'User registered', 'user': user.to_dict()})
 
 @auth_bp.route('/login', methods=['POST'])
@@ -41,6 +40,7 @@ def me():
         return jsonify({'error': 'Not logged in'}), 401
     user = User.query.get(user_id)
     if not user:
+        # Session can become stale if the DB is reset or the user row is deleted.
         session.pop('user_id', None)
         return jsonify({'error': 'Not logged in'}), 401
     return jsonify(user.to_dict())
@@ -50,7 +50,6 @@ def update_profile():
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'error': 'Not logged in'}), 401
-
     user = User.query.get(user_id)
     if not user:
         session.pop('user_id', None)
@@ -59,7 +58,6 @@ def update_profile():
     data = request.get_json(silent=True) or {}
     modes = data.get('account_modes', [])
     topics = data.get('task_topics', [])
-
     if not isinstance(modes, list) or not any(mode in ('worker', 'contractor') for mode in modes):
         return jsonify({'error': 'Select at least one account mode'}), 400
     if not isinstance(topics, list) or not topics:

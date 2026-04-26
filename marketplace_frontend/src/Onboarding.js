@@ -1,13 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { WorldIDButton } from './world-id';
 import { apiFetch } from './api';
+import { CONTRACTOR_MODES, mergeUserResponse, setLocalProfile } from './userProfile';
 import './App.css';
-
-const modeOptions = [
-  { id: 'worker', label: 'Looking for work', detail: 'Accept tasks after identity verification.' },
-  { id: 'contractor', label: 'Posting work', detail: 'Create tasks and dispatch them to verified workers.' },
-];
 
 const topicOptions = [
   'research',
@@ -23,7 +19,6 @@ const topicOptions = [
 function Onboarding() {
   const [step, setStep] = useState(0);
   const [user, setUser] = useState(null);
-  const [modes, setModes] = useState([]);
   const [topics, setTopics] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -40,21 +35,13 @@ function Onboarding() {
       })
       .then(data => {
         if (!data) return;
-        setUser(data);
-        setModes(data.account_modes || []);
-        setTopics(data.task_topics || []);
+        const merged = mergeUserResponse(data);
+        setUser(merged);
+        setTopics(merged.task_topics || []);
       });
   }, [navigate]);
 
-  const progress = useMemo(() => ((step + 1) / 3) * 100, [step]);
-
-  const toggleMode = mode => {
-    setModes(current => (
-      current.includes(mode)
-        ? current.filter(item => item !== mode)
-        : [...current, mode]
-    ));
-  };
+  const progress = useMemo(() => ((step + 1) / 2) * 100, [step]);
 
   const toggleTopic = topic => {
     setTopics(current => (
@@ -64,48 +51,43 @@ function Onboarding() {
     ));
   };
 
-  const saveProfile = completed => {
+  const saveProfile = async completed => {
     setError('');
     setMessage('');
-    return apiFetch('/api/auth/profile', {
+    if (!user?.username) {
+      setError('Not signed in.');
+      return false;
+    }
+    const profile = {
+      account_modes: CONTRACTOR_MODES,
+      task_topics: topics,
+      onboarding_completed: completed,
+    };
+    const response = await apiFetch('/api/auth/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        account_modes: modes,
-        task_topics: topics,
-        onboarding_completed: completed,
-      }),
-    })
-      .then(res => res.json().then(data => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) {
-          setError(data.error || 'Could not save onboarding');
-          return false;
-        }
-        setUser(data.user);
-        return true;
-      })
-      .catch(() => {
-        setError('Could not save onboarding');
-        return false;
-      });
+      body: JSON.stringify(profile),
+    });
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      setError(data.error || 'Could not save profile.');
+      return false;
+    }
+    const savedUser = data.user || { ...user, ...profile };
+    setLocalProfile(user.username, profile);
+    setUser(mergeUserResponse(savedUser));
+    return true;
   };
 
   const next = async () => {
-    if (step === 0 && modes.length === 0) {
-      setError('Select at least one way you will use the marketplace.');
-      return;
-    }
-    if (step === 1 && topics.length === 0) {
+    if (step === 0 && topics.length === 0) {
       setError('Select at least one task topic.');
       return;
     }
     setError('');
-    if (step === 1) {
-      const saved = await saveProfile(false);
-      if (!saved) return;
-    }
-    setStep(current => Math.min(current + 1, 2));
+    const saved = await saveProfile(false);
+    if (!saved) return;
+    setStep(current => Math.min(current + 1, 1));
   };
 
   const finish = async () => {
@@ -131,7 +113,6 @@ function Onboarding() {
           <p className="eyebrow">Account setup</p>
           <h1>Onboarding</h1>
         </div>
-        <Link className="ghost-link" to="/dashboard">Skip to app</Link>
       </header>
 
       <section className="panel onboarding-panel">
@@ -139,7 +120,7 @@ function Onboarding() {
           <span style={{ width: `${progress}%` }} />
         </div>
         <div className="step-list">
-          {['Role', 'Topics', 'World ID'].map((label, index) => (
+          {['Work focus', 'World ID'].map((label, index) => (
             <button
               key={label}
               type="button"
@@ -153,29 +134,10 @@ function Onboarding() {
 
         <div className="onboarding-viewport">
           {step === 0 && (
-            <section className="onboarding-step active-step" key="role">
-              <p className="eyebrow">Step 1</p>
-              <h2>How will you use the marketplace?</h2>
-              <div className="option-grid">
-                {modeOptions.map(option => (
-                  <button
-                    className={`choice-card ${modes.includes(option.id) ? 'selected' : ''}`}
-                    key={option.id}
-                    type="button"
-                    onClick={() => toggleMode(option.id)}
-                  >
-                    <strong>{option.label}</strong>
-                    <span>{option.detail}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {step === 1 && (
             <section className="onboarding-step active-step" key="topics">
-              <p className="eyebrow">Step 2</p>
-              <h2>Pick task topics you care about.</h2>
+              <p className="eyebrow">Step 1</p>
+              <h2>Pick the work you want to handle.</h2>
+              <p className="helper-text">Human Agent only serves workers here. Choose the task lanes that match your skills.</p>
               <div className="topic-cloud">
                 {topicOptions.map(topic => (
                   <button
@@ -191,12 +153,12 @@ function Onboarding() {
             </section>
           )}
 
-          {step === 2 && (
+          {step === 1 && (
             <section className="onboarding-step active-step" key="world">
-              <p className="eyebrow">Step 3</p>
-              <h2>World ID unlocks worker actions.</h2>
+              <p className="eyebrow">Step 2</p>
+              <h2>World ID unlocks human agent actions.</h2>
               <p className="helper-text">
-                Verify now if you want to accept tasks. Contractors can skip and post work immediately.
+                Verify now so you can claim open work. You can also finish setup and verify from the dashboard later.
               </p>
               {user.world_id_verified ? (
                 <p className="notice success">World ID connected for {user.username}.</p>
@@ -217,7 +179,7 @@ function Onboarding() {
           <button className="secondary-button" type="button" onClick={() => setStep(current => Math.max(current - 1, 0))} disabled={step === 0}>
             Back
           </button>
-          {step < 2 ? (
+          {step < 1 ? (
             <button className="primary-button" type="button" onClick={next}>Continue</button>
           ) : (
             <button className="primary-button" type="button" onClick={finish}>Finish setup</button>

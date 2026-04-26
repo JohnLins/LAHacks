@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { WorldIDButton } from './world-id';
 import { apiFetch } from './api';
+import { mergeUserResponse } from './userProfile';
 import './App.css';
 
 function WorldVerify() {
@@ -14,7 +15,9 @@ function WorldVerify() {
   useEffect(() => {
     apiFetch('/api/auth/me')
       .then(res => (res.ok ? res.json() : null))
-      .then(data => setUser(data))
+      .then(data => {
+        if (data) setUser(mergeUserResponse(data));
+      })
       .finally(() => setCheckingUser(false));
   }, []);
 
@@ -23,27 +26,6 @@ function WorldVerify() {
       setMessage(data.message);
       setTimeout(() => navigate('/dashboard'), 1000);
     }
-  };
-
-  const handleDeregister = () => {
-    const confirmed = window.confirm('Deregister World ID from this account? You can verify a different account afterward.');
-    if (!confirmed) return;
-
-    setMessage('');
-    setError('');
-    apiFetch('/api/world/registration', {
-      method: 'DELETE',
-    })
-      .then(res => res.json().then(data => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (!ok) {
-          setError(data.error || 'Could not deregister World ID');
-          return;
-        }
-        setUser(current => current ? { ...current, world_id_verified: false } : current);
-        setMessage(data.message || 'World ID deregistered');
-      })
-      .catch(() => setError('Could not deregister World ID'));
   };
 
   return (
@@ -59,7 +41,7 @@ function WorldVerify() {
       <section className="panel auth-panel">
         <h2>Verify once, accept work immediately.</h2>
         <p className="helper-text">
-          This marketplace uses World ID to keep each worker accountable before task assignment.
+          Human Agent uses World ID to keep each human worker accountable before task assignment.
         </p>
         {checkingUser && <p className="notice">Checking account session...</p>}
         {!checkingUser && !user && (
@@ -69,12 +51,7 @@ function WorldVerify() {
           </div>
         )}
         {!checkingUser && user && user.world_id_verified && (
-          <>
-            <p className="notice success">World ID is already verified for {user.username}.</p>
-            <button className="secondary-button danger-button" type="button" onClick={handleDeregister}>
-              Deregister World ID
-            </button>
-          </>
+          <p className="notice success">World ID is already verified for {user.username}.</p>
         )}
         {!checkingUser && user && !user.world_id_verified && (
           <WorldIDButton onVerify={handleVerify} onError={setError} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import TaskList from './TaskList';
 import TaskDetail from './TaskDetail';
 import Dashboard from './Dashboard';
@@ -8,7 +8,6 @@ import Login from './Login';
 import Register from './Register';
 import WorldVerify from './WorldVerify';
 import Onboarding from './Onboarding';
-import Admin from './Admin';
 
 function App() {
   return (
@@ -22,7 +21,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/verify" element={<WorldVerify />} />
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
   );

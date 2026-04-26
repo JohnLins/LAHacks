@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from './api';
+import { setLocalProfile } from './userProfile';
 import './App.css';
 
 function Register() {
@@ -19,16 +20,33 @@ function Register() {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.error) setError(data.error);
-        else navigate('/onboarding');
+        if (data.error) {
+          setError(data.error);
+          return;
+        }
+        // Minimal backends (e.g. LAHacks) do not create a session on register — sign in so /onboarding can load /me.
+        return apiFetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        })
+          .then(r => r.json().then(j => ({ ok: r.ok, j })))
+          .then(({ ok, j }) => {
+            if (!ok || j.error) {
+              setError('Account created, but sign-in failed. Log in from the login page.');
+              return;
+            }
+            setLocalProfile(username, { onboarding_completed: false, account_modes: ['worker'], task_topics: [] });
+            navigate('/onboarding');
+          });
       });
   };
 
   return (
     <main className="shell narrow-shell">
       <section className="panel auth-panel">
-        <p className="eyebrow">New account</p>
-        <h1>Register</h1>
+        <p className="eyebrow">Human Agent access</p>
+        <h1>Sign Up</h1>
         <form onSubmit={handleSubmit}>
           <label>
             Username
@@ -38,7 +56,7 @@ function Register() {
             Password
             <input type="password" value={password} onChange={event => setPassword(event.target.value)} />
           </label>
-          <button className="primary-button" type="submit">Create account</button>
+          <button className="primary-button" type="submit">Create human agent account</button>
         </form>
         {error && <p className="notice error">{error}</p>}
         <p className="helper-text">Already registered? <Link to="/login">Login</Link></p>

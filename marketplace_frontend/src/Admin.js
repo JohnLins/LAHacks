@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from './api';
+import { mergeUserResponse } from './userProfile';
 import './App.css';
 
 function Admin() {
@@ -40,11 +41,12 @@ function Admin() {
       })
       .then(user => {
         if (!user) return;
-        if (!user.is_admin) {
+        const merged = mergeUserResponse(user);
+        if (!merged.is_admin) {
           navigate('/tasks');
           return;
         }
-        setCurrentUser(user);
+        setCurrentUser(merged);
         loadUsers();
       });
   }, [navigate]);
@@ -124,7 +126,7 @@ function Admin() {
         </div>
         <nav className="nav-actions" aria-label="Admin">
           <Link className="ghost-link" to="/dashboard">Dashboard</Link>
-          <Link className="ghost-link" to="/tasks">Task queue</Link>
+          <Link className="ghost-link" to="/tasks">Agent queue</Link>
         </nav>
       </header>
 

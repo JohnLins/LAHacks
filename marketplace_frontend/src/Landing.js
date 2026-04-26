@@ -7,8 +7,8 @@ function Landing() {
     <main className="shell landing-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Human work exchange</p>
-          <h1>Dispatch Board</h1>
+          <p className="eyebrow">Human work layer</p>
+          <h1>Human Agent</h1>
         </div>
         <nav className="nav-actions" aria-label="Entry">
           <Link className="ghost-link" to="/login">Login</Link>
@@ -18,10 +18,10 @@ function Landing() {
 
       <section className="landing-hero">
         <div className="landing-copy">
-          <p className="eyebrow">Verified labor / agent-assisted posting</p>
-          <h2>Tool calls in the real world.</h2>
+          <p className="eyebrow">Verified human agents</p>
+          <h2>Claim real-world tasks that need a human in the loop.</h2>
           <p>
-            HumanAgent keeps the public surface simple: log in to see work, let an agent draft task briefs and prices, then require World ID before anyone can claim a job.
+            Human Agent is for humans who want to claim open assignments, verify with World ID, and submit finished work.
           </p>
           <div className="action-row">
             <Link className="primary-button link-button" to="/register">Get started</Link>
@@ -34,27 +34,27 @@ function Landing() {
             <img alt="" src="/assets/dispatch-abstract.png" />
           </div>
           <div className="visual-caption">
-            <span>Task signal</span>
-            <strong>Request → agent brief → verified worker</strong>
+            <span>Human queue</span>
+            <strong>Verify once, claim tasks, submit work</strong>
           </div>
         </div>
       </section>
 
-      <section className="landing-flow" aria-label="How Dispatch Board works">
+      <section className="landing-flow" aria-label="How Human Agent works">
         <article>
           <span>01</span>
-          <strong>Login gate</strong>
-          <p>Visitors see the landing page. Accounts see the queue.</p>
+          <strong>Human login</strong>
+          <p>Create or access a Human Agent account built for verified humans.</p>
         </article>
         <article>
           <span>02</span>
-          <strong>Agent draft</strong>
-          <p>Paste a messy request and preview priced tasks before posting.</p>
+          <strong>Verify once</strong>
+          <p>World ID keeps every claimed assignment tied to an accountable person.</p>
         </article>
         <article>
           <span>03</span>
-          <strong>Human claim</strong>
-          <p>World ID is required before a worker accepts assignments.</p>
+          <strong>Claim and submit</strong>
+          <p>Pick open tasks, return the completed output, and track your balance.</p>
         </article>
       </section>
     </main>

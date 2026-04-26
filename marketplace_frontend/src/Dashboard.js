@@ -24,13 +24,21 @@ function Dashboard() {
         setUser(currentUser);
         return apiFetch('/api/tasks/')
           .then(res => res.json())
-          .then(allTasks => setTasks(allTasks.filter(task => task.assigned_user === currentUser.username)));
+          .then(allTasks => setTasks(allTasks));
       });
   }, [navigate]);
 
   const earned = Number(user?.fake_balance || 0);
-  const activeTasks = useMemo(() => tasks.filter(task => task.status === 'accepted'), [tasks]);
-  const completedTasks = useMemo(() => tasks.filter(task => task.status === 'completed'), [tasks]);
+  const modes = user?.account_modes || [];
+  const isWorker = modes.includes('worker');
+  const isContractor = modes.includes('contractor');
+  const isHybrid = isWorker && isContractor;
+  const roleLabel = isContractor && !isWorker ? 'Requester' : isWorker && !isContractor ? 'Worker' : 'Hybrid';
+  const assignedTasks = useMemo(() => tasks.filter(task => task.assigned_user === user?.username), [tasks, user]);
+  const postedTasks = useMemo(() => tasks.filter(task => task.created_by === user?.username), [tasks, user]);
+  const activeTasks = useMemo(() => assignedTasks.filter(task => task.status === 'accepted'), [assignedTasks]);
+  const completedTasks = useMemo(() => assignedTasks.filter(task => task.status === 'completed'), [assignedTasks]);
+  const openPostedTasks = useMemo(() => postedTasks.filter(task => task.status === 'open'), [postedTasks]);
 
   const handleLogout = () => {
     apiFetch('/api/auth/logout', {
@@ -71,13 +79,13 @@ function Dashboard() {
     <main className="shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Worker console</p>
-          <h1>{user.username}</h1>
+          <p className="eyebrow">{isContractor && !isWorker ? 'Requester console' : isWorker && !isContractor ? 'Worker console' : 'Account console'}</p>
+          <h1>{isContractor && !isWorker ? 'Requester' : isWorker && !isContractor ? 'Worker' : 'Dashboard'}</h1>
         </div>
         <nav className="nav-actions" aria-label="Dashboard">
           {user.is_admin && <Link className="ghost-link" to="/admin">Admin</Link>}
           <Link className="ghost-link" to="/tasks">Task queue</Link>
-          <Link className="ghost-link" to="/verify">World ID</Link>
+          {isWorker && <Link className="ghost-link" to="/verify">World ID</Link>}
           <button className="secondary-button" type="button" onClick={handleLogout}>Logout</button>
         </nav>
       </header>
@@ -88,7 +96,7 @@ function Dashboard() {
           <h2>{user.username}</h2>
           <div className="profile-tags">
             {(user.account_modes || []).map(mode => (
-              <span key={mode}>{mode === 'worker' ? 'Looking for work' : 'Looking for workers'}</span>
+              <span key={mode}>{mode === 'worker' ? 'Looking for work' : 'Posting work'}</span>
             ))}
             {(user.task_topics || []).map(topic => (
               <span key={topic}>{topic}</span>
@@ -116,22 +124,37 @@ function Dashboard() {
         </div>
         <div className="metric">
           <span>Mode</span>
-          <strong>{(user.account_modes || []).includes('worker') && (user.account_modes || []).includes('contractor') ? 'Both' : (user.account_modes || [])[0] || 'New'}</strong>
+          <strong>{roleLabel}</strong>
         </div>
-        <div className="metric">
-          <span>Balance</span>
-          <strong>${earned.toFixed(2)}</strong>
-        </div>
-        <div className="metric">
-          <span>Active</span>
-          <strong>{activeTasks.length}</strong>
-        </div>
+        {isWorker && (
+          <>
+            <div className="metric">
+              <span>Balance</span>
+              <strong>${earned.toFixed(2)}</strong>
+            </div>
+            <div className="metric">
+              <span>Active</span>
+              <strong>{activeTasks.length}</strong>
+            </div>
+          </>
+        )}
+        {isContractor && (
+          <>
+            <div className="metric">
+              <span>Posted</span>
+              <strong>{postedTasks.length}</strong>
+            </div>
+            <div className="metric">
+              <span>Open</span>
+              <strong>{openPostedTasks.length}</strong>
+            </div>
+          </>
+        )}
       </section>
 
-      {!user.world_id_verified && (
+      {isWorker && !user.world_id_verified && (
         <section className="panel callout-panel">
           <div>
-            <p className="eyebrow">Identity gate</p>
             <h2>Verify once to accept work</h2>
             <p>Open tasks require World ID verification before assignment.</p>
           </div>
@@ -139,31 +162,70 @@ function Dashboard() {
         </section>
       )}
 
-      <section className="panel">
+      {isContractor && (
+        <section className="panel callout-panel">
+          <div>
+            <h2>Turn a messy request into reviewed tasks</h2>
+            <p>Use the Fetch.ai agent draft flow first, then post only the tasks you approve.</p>
+          </div>
+          <Link className="primary-button link-button" to="/tasks">Open agent</Link>
+        </section>
+      )}
+
+      {isWorker && (
+        <section className="panel">
         <div className="panel-header split">
           <div>
-            <p className="eyebrow">Assigned work</p>
             <h2>Your tasks</h2>
           </div>
-          <Link className="secondary-button link-button" to="/tasks">Find work</Link>
+          {!isHybrid && <Link className="secondary-button link-button" to="/tasks">Find work</Link>}
         </div>
 
-        {tasks.length === 0 ? (
+        {assignedTasks.length === 0 ? (
           <p className="empty-state">No assigned tasks yet.</p>
         ) : (
           <div className="task-stack">
-            {tasks.map(task => (
+            {assignedTasks.map(task => (
               <Link className="task-row" to={`/task/${task.id}`} key={task.id}>
                 <div>
                   <span className={`status-pill ${task.status}`}>{task.status}</span>
                   <h3>{task.description}</h3>
+                  <p>{task.created_by ? `Requested by ${task.created_by}` : 'Marketplace request'}</p>
                 </div>
                 <strong>${Number(task.compensation || 0).toFixed(2)}</strong>
               </Link>
             ))}
           </div>
         )}
-      </section>
+        </section>
+      )}
+
+      {isContractor && (
+        <section className="panel">
+          <div className="panel-header split">
+            <div>
+              <h2>Your dispatches</h2>
+            </div>
+          </div>
+
+          {postedTasks.length === 0 ? (
+            <p className="empty-state">No posted tasks yet.</p>
+          ) : (
+            <div className="task-stack">
+              {postedTasks.map(task => (
+                <Link className="task-row" to={`/task/${task.id}`} key={task.id}>
+                  <div>
+                    <span className={`status-pill ${task.status}`}>{task.status}</span>
+                    <h3>{task.description}</h3>
+                    <p>{task.assigned_user ? `Assigned to ${task.assigned_user}` : 'Waiting for worker'}</p>
+                  </div>
+                  <strong>${Number(task.compensation || 0).toFixed(2)}</strong>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </main>
   );
 }

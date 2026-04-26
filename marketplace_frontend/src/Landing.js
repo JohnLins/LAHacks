@@ -19,9 +19,9 @@ function Landing() {
       <section className="landing-hero">
         <div className="landing-copy">
           <p className="eyebrow">Verified labor / agent-assisted posting</p>
-          <h2>Turn messy requests into paid human work.</h2>
+          <h2>Tool calls in the real world.</h2>
           <p>
-            Dispatch Board keeps the public surface simple: log in to see work, let an agent draft task briefs and prices, then require World ID before anyone can claim a job.
+            HumanAgent keeps the public surface simple: log in to see work, let an agent draft task briefs and prices, then require World ID before anyone can claim a job.
           </p>
           <div className="action-row">
             <Link className="primary-button link-button" to="/register">Get started</Link>

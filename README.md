@@ -91,8 +91,8 @@ Optional environment variables:
 
 - `AGENT_NAME`: defaults to `lahacks_fetch_agent`
 - `AGENT_SEED`: defaults to a dev seed (change this for a unique address)
- - `AGENT_PORT`: defaults to `8000`
- - `AGENT_ENDPOINT`: optional public URL for Agentverse reachability
+- `AGENT_PORT`: defaults to `8000`
+- `AGENT_ENDPOINT`: optional public URL for Agentverse reachability
 
 ## Next steps
 

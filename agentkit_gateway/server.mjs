@@ -9,6 +9,7 @@ import {
 
 const PORT = Number(process.env.AGENTKIT_GATEWAY_PORT || 4021);
 const MARKETPLACE_URL = process.env.MARKETPLACE_URL || 'http://127.0.0.1:5000/api/tasks/';
+const MARKETPLACE_AGENT_TOKEN = process.env.MARKETPLACE_AGENT_TOKEN || '';
 const PUBLIC_ORIGIN = process.env.AGENTKIT_PUBLIC_ORIGIN || `http://localhost:${PORT}`;
 const AGENTKIT_NETWORK = process.env.AGENTKIT_NETWORK || 'eip155:8453';
 const AGENTKIT_RPC_URL = process.env.AGENTKIT_RPC_URL;
@@ -33,6 +34,25 @@ function normalizeTask(input) {
   }
 
   return { description, compensation };
+}
+
+function normalizeMessage(input) {
+  const body = String(input?.body || input?.message || '').trim();
+  if (!body) {
+    return { error: 'Message cannot be empty' };
+  }
+  if (body.length > 2000) {
+    return { error: 'Message is too long' };
+  }
+  return { body };
+}
+
+function marketplaceHeaders(extra = {}) {
+  return {
+    'content-type': 'application/json',
+    ...(MARKETPLACE_AGENT_TOKEN ? { authorization: `Bearer ${MARKETPLACE_AGENT_TOKEN}` } : {}),
+    ...extra,
+  };
 }
 
 async function verifyHumanBackedAgent(c) {
@@ -97,6 +117,7 @@ app.get('/health', c => c.json({
   marketplace_url: MARKETPLACE_URL,
   public_origin: PUBLIC_ORIGIN,
   network: AGENTKIT_NETWORK,
+  marketplace_agent_token_configured: Boolean(MARKETPLACE_AGENT_TOKEN),
 }));
 
 app.post('/agentkit/tasks', async c => {
@@ -117,7 +138,7 @@ app.post('/agentkit/tasks', async c => {
 
     const response = await fetch(MARKETPLACE_URL, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: marketplaceHeaders(),
       body: JSON.stringify(task),
     });
     const payload = await response.json().catch(() => ({}));
@@ -134,6 +155,78 @@ app.post('/agentkit/tasks', async c => {
     created,
     failed,
   }, failed.length ? 207 : 200);
+});
+
+app.post('/agentkit/tasks/:taskId/messages', async c => {
+  const verified = await verifyHumanBackedAgent(c);
+  if (!verified.ok) return verified.response;
+
+  const body = await c.req.json().catch(() => null);
+  const message = normalizeMessage(body);
+  if (message.error) {
+    return jsonError(c, 400, message.error);
+  }
+
+  const taskId = c.req.param('taskId');
+  const target = new URL(`${taskId}/agent-messages`, MARKETPLACE_URL).toString();
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: marketplaceHeaders({
+      'x-agentkit-address': verified.agent.address,
+      'x-agentkit-human-id': verified.agent.humanId,
+      'x-agentkit-chain-id': verified.agent.chainId,
+    }),
+    body: JSON.stringify(message),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return c.json({
+      error: payload.error || 'Could not send agent message',
+      agent: verified.agent,
+    }, response.status);
+  }
+
+  return c.json({
+    message: 'Sent message from a World AgentKit verified agent.',
+    agent: verified.agent,
+    task_message: payload.task_message,
+  });
+});
+
+app.post('/agentkit/tasks/:taskId/agents/verify', async c => {
+  const verified = await verifyHumanBackedAgent(c);
+  if (!verified.ok) return verified.response;
+
+  const body = await c.req.json().catch(() => null);
+  const address = String(body?.address || body?.agentverse_address || '').trim();
+  if (!address) {
+    return jsonError(c, 400, 'Agentverse agent address is required');
+  }
+
+  const taskId = c.req.param('taskId');
+  const target = new URL(`${taskId}/agents/verify`, MARKETPLACE_URL).toString();
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: marketplaceHeaders({
+      'x-agentkit-address': verified.agent.address,
+      'x-agentkit-human-id': verified.agent.humanId,
+      'x-agentkit-chain-id': verified.agent.chainId,
+    }),
+    body: JSON.stringify({ address }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return c.json({
+      error: payload.error || 'Could not verify task agent',
+      agent: verified.agent,
+    }, response.status);
+  }
+
+  return c.json({
+    message: 'Verified this Agentverse task agent with World AgentKit.',
+    agent: verified.agent,
+    task_agent: payload.agent,
+  });
 });
 
 serve({ fetch: app.fetch, port: PORT }, info => {

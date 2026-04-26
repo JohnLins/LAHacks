@@ -169,12 +169,13 @@ h3 {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
 
 .metric {
+  min-width: 0;
   min-height: 112px;
   border: 2px solid var(--line);
   border-radius: 6px;
@@ -204,9 +205,13 @@ h3 {
 
 .metric strong {
   display: block;
+  max-width: 100%;
   margin-top: 14px;
-  font-size: clamp(1.9rem, 4vw, 3.5rem);
-  line-height: 0.9;
+  font-size: clamp(1.85rem, 3.2vw, 3rem);
+  line-height: 0.95;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
 }
 
 .workspace-grid {
@@ -215,6 +220,18 @@ h3 {
   gap: 18px;
   align-items: start;
   min-width: 0;
+}
+
+.requester-workspace {
+  grid-template-columns: minmax(360px, 1.15fr) minmax(340px, 0.85fr);
+}
+
+.worker-workspace {
+  grid-template-columns: 1fr;
+}
+
+.worker-workspace .queue-panel {
+  width: 100%;
 }
 
 .form-stack {
@@ -257,6 +274,40 @@ h3 {
 
 .panel-header {
   margin-bottom: 16px;
+}
+
+.featured-agent-panel {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(183, 255, 67, 0.28), transparent 42%),
+    var(--panel);
+}
+
+.featured-agent-panel::after {
+  content: "AGENTVERSE";
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 5px 9px;
+}
+
+.featured-agent-panel h2 {
+  max-width: 680px;
+  font-size: clamp(1.8rem, 3vw, 3.2rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.compact-task-form {
+  background: #fff;
 }
 
 .split,
@@ -674,9 +725,34 @@ textarea {
   margin-top: 16px;
 }
 
+.agent-draft-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--accent);
+  box-shadow: 3px 3px 0 var(--line);
+  padding: 12px;
+}
+
+.agent-draft-summary span {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.agent-draft-summary strong {
+  font-size: 1.45rem;
+}
+
 .agent-draft-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.26fr) auto;
   gap: 10px;
+  align-items: end;
   border: 2px solid var(--line);
   border-radius: 6px;
   background: #fff;
@@ -701,20 +777,30 @@ textarea {
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
+.worker-workspace .task-row {
+  grid-template-columns: minmax(0, 1fr) minmax(90px, auto);
+}
+
 .task-row strong {
   font-size: 1.25rem;
+  white-space: nowrap;
 }
 
 .status-pill {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: fit-content;
+  min-height: 28px;
   border: 2px solid var(--line);
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 12px;
   background: #fff;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.72rem;
   font-weight: 600;
+  line-height: 1;
+  text-align: center;
   text-transform: uppercase;
 }
 
@@ -766,6 +852,139 @@ textarea {
 .detail-list dd {
   margin: 6px 0 0;
   font-weight: 800;
+}
+
+.thread-panel,
+.agent-manager-panel {
+  margin-top: 18px;
+}
+
+.message-stack,
+.agent-card-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.message-card {
+  width: min(86%, 620px);
+  border: 2px solid var(--line);
+  border-radius: 12px 12px 12px 4px;
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--line);
+  padding: 14px;
+}
+
+.message-card.mine {
+  justify-self: end;
+  border-radius: 12px 12px 4px 12px;
+  background: #dcffb2;
+}
+
+.message-card.agent-message {
+  border-left-width: 8px;
+}
+
+.message-card.verified-agent-message {
+  background: linear-gradient(135deg, rgba(183, 255, 67, 0.35), #fff 48%);
+}
+
+.message-card p {
+  margin-bottom: 0;
+  line-height: 1.4;
+}
+
+.message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.message-meta span {
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.verified-agent-message .message-meta span {
+  background: var(--ink);
+  color: var(--accent);
+}
+
+.message-form,
+.agent-config-form {
+  margin-top: 16px;
+}
+
+.agent-config-form {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: end;
+}
+
+.agent-instructions-field,
+.agent-config-form .primary-button,
+.toggle-row {
+  grid-column: 1 / -1;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  color: var(--ink);
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  text-transform: none;
+}
+
+.toggle-row input {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+.agent-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 4px 4px 0 var(--line);
+  padding: 14px;
+}
+
+.agent-card p {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.agent-card .agent-instructions {
+  margin-top: 10px;
+  border-left: 5px solid var(--accent-2);
+  background: var(--panel);
+  padding: 10px;
+  color: var(--ink);
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.agent-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .auth-panel {
@@ -832,7 +1051,12 @@ textarea {
 }
 
 @media (max-width: 1040px) {
-  .workspace-grid {
+  .workspace-grid,
+  .requester-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-draft-row {
     grid-template-columns: 1fr;
   }
 }
@@ -861,7 +1085,124 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .task-row strong {
+    justify-self: start;
+  }
+
   .admin-user-card {
     grid-template-columns: 1fr;
+  }
+
+  .agent-config-form,
+  .agent-card {
+    grid-template-columns: 1fr;
+  }
+
+  .message-card {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .shell,
+  .landing-shell,
+  .onboarding-shell,
+  .narrow-shell {
+    width: 100%;
+    padding: 22px 14px 44px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 13vw, 3.2rem);
+    overflow-wrap: anywhere;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .workspace-grid,
+  .requester-workspace,
+  .worker-workspace,
+  .form-stack,
+  .queue-panel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .metric {
+    min-height: 92px;
+    box-shadow: 5px 5px 0 var(--line);
+  }
+
+  .metric strong {
+    font-size: clamp(1.85rem, 12vw, 2.2rem);
+  }
+
+  .nav-actions,
+  .button-row,
+  .action-row {
+    width: 100%;
+  }
+
+  .ghost-link,
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 12px;
+    text-align: center;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  .queue-panel .split {
+    gap: 10px;
+  }
+
+  .queue-panel .split .secondary-button {
+    width: 100%;
+  }
+
+  .segmented-control {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .segmented-control button {
+    min-height: 42px;
+    padding-inline: 6px;
+    white-space: nowrap;
+  }
+
+  .task-row {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .task-row h3 {
+    font-size: 1rem;
+  }
+
+  .task-brief {
+    padding: 14px;
+    font-size: 1.35rem;
+  }
+
+  .featured-agent-panel::after {
+    position: static;
+    justify-self: start;
+    display: inline-flex;
+    margin-bottom: 12px;
+  }
+
+  .featured-agent-panel h2 {
+    font-size: clamp(1.7rem, 11vw, 2.4rem);
+    overflow-wrap: anywhere;
   }
 }

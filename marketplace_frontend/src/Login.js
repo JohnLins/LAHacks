@@ -21,7 +21,7 @@ function Login() {
       .then(data => {
         if (data.error) setError(data.error);
         else if (data.user?.is_admin) navigate('/admin');
-        else navigate(data.user && !data.user.onboarding_completed ? '/onboarding' : '/tasks');
+        else navigate(data.user && !data.user.onboarding_completed ? '/onboarding' : '/dashboard');
       });
   };
 

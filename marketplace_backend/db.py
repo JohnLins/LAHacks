@@ -22,10 +22,55 @@ def _ensure_user_columns():
             db.session.execute(db.text(statement))
     db.session.commit()
 
+
+def _ensure_task_columns():
+    engine = db.session.get_bind()
+    if engine.dialect.name != 'sqlite':
+        return
+
+    existing = {
+        row[1]
+        for row in db.session.execute(db.text('PRAGMA table_info(task)')).fetchall()
+    }
+    columns = {
+        'created_by_id': 'ALTER TABLE task ADD COLUMN created_by_id INTEGER REFERENCES user(id)',
+    }
+    for name, statement in columns.items():
+        if name not in existing:
+            db.session.execute(db.text(statement))
+    db.session.commit()
+
+def _ensure_task_agent_columns():
+    engine = db.session.get_bind()
+    if engine.dialect.name != 'sqlite':
+        return
+
+    existing = {
+        row[1]
+        for row in db.session.execute(db.text('PRAGMA table_info(task_agent)')).fetchall()
+    }
+    if not existing:
+        return
+
+    columns = {
+        'instructions': "ALTER TABLE task_agent ADD COLUMN instructions TEXT DEFAULT ''",
+        'automated_responses': 'ALTER TABLE task_agent ADD COLUMN automated_responses BOOLEAN DEFAULT 0',
+        'world_verified': 'ALTER TABLE task_agent ADD COLUMN world_verified BOOLEAN DEFAULT 0',
+        'verification_source': "ALTER TABLE task_agent ADD COLUMN verification_source VARCHAR(40) DEFAULT 'unverified'",
+        'verified_at': 'ALTER TABLE task_agent ADD COLUMN verified_at DATETIME',
+        'last_auto_response_message_id': 'ALTER TABLE task_agent ADD COLUMN last_auto_response_message_id INTEGER',
+    }
+    for name, statement in columns.items():
+        if name not in existing:
+            db.session.execute(db.text(statement))
+    db.session.commit()
+
 def init_db(app):
     with app.app_context():
         db.create_all()
         _ensure_user_columns()
+        _ensure_task_columns()
+        _ensure_task_agent_columns()
         _ensure_admin_account()
 
 

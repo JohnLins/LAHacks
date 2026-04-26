@@ -13,6 +13,10 @@ def _current_user():
     return User.query.get(user_id)
 
 
+def _has_mode(user, mode):
+    return mode in [item for item in (user.account_modes or '').split(',') if item]
+
+
 def _normalize_task(task):
     description = (task.get('task') or task.get('description') or '').strip()
     try:
@@ -33,8 +37,11 @@ def _normalize_task(task):
 
 @agent_bp.route('/extract', methods=['POST'])
 def extract_tasks():
-    if not _current_user():
+    user = _current_user()
+    if not user:
         return jsonify({'error': 'Not logged in'}), 401
+    if not user.is_admin and not _has_mode(user, 'contractor'):
+        return jsonify({'error': 'Requester account required to use agent drafting'}), 403
 
     data = request.get_json(silent=True) or {}
     prompt = (data.get('prompt') or '').strip()
@@ -53,8 +60,11 @@ def extract_tasks():
 
 @agent_bp.route('/post', methods=['POST'])
 def post_tasks():
-    if not _current_user():
+    user = _current_user()
+    if not user:
         return jsonify({'error': 'Not logged in'}), 401
+    if not user.is_admin and not _has_mode(user, 'contractor'):
+        return jsonify({'error': 'Requester account required to post agent tasks'}), 403
 
     data = request.get_json(silent=True) or {}
     prompt = (data.get('prompt') or '').strip()
@@ -84,6 +94,7 @@ def post_tasks():
         record = Task(
             description=task['description'],
             compensation=task['compensation'],
+            created_by=user,
         )
         db.session.add(record)
         db.session.flush()

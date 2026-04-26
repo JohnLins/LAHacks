@@ -6,7 +6,7 @@ import './App.css';
 
 const modeOptions = [
   { id: 'worker', label: 'Looking for work', detail: 'Accept tasks after identity verification.' },
-  { id: 'contractor', label: 'Looking for workers', detail: 'Post work and dispatch human tasks.' },
+  { id: 'contractor', label: 'Posting work', detail: 'Create tasks and dispatch them to verified workers.' },
 ];
 
 const topicOptions = [
